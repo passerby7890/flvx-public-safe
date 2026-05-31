@@ -30,4 +30,9 @@ done
 chmod 0755 "${DEST_DIR}/gost-amd64" "${DEST_DIR}/gost-arm64"
 chmod 0644 "${DEST_DIR}/gost-amd64.sha256" "${DEST_DIR}/gost-arm64.sha256"
 
+if [[ -f "./install.sh" ]]; then
+  cp -f "./install.sh" "${DEST_DIR}/install.sh"
+  chmod 0644 "${DEST_DIR}/install.sh"
+fi
+
 echo "agent assets synced to ${DEST_DIR}"

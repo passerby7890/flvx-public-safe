@@ -2,14 +2,14 @@ import { getConfigByName, getConfigs } from "@/api";
 
 export type SiteConfig = typeof siteConfig;
 
-// 缓存相关常量
 const CACHE_PREFIX = "vite_config_";
 const VERSION = import.meta.env.VITE_APP_VERSION || "dev";
 const APP_VERSION = "1.0.3";
 const DEFAULT_FAVICON = "/favicon.ico";
 const FAVICON_LINK_ID = "app-favicon";
 const GITHUB_REPO =
-  import.meta.env.VITE_GITHUB_REPO || "https://github.com/passerby7890/flvx-public-safe";
+  import.meta.env.VITE_GITHUB_REPO ||
+  "https://github.com/passerby7890/flvx-public-safe";
 
 const getInitialConfig = () => {
   if (typeof window === "undefined") {
@@ -28,19 +28,8 @@ const getInitialConfig = () => {
   const cachedAppFavicon =
     localStorage.getItem(CACHE_PREFIX + "app_favicon") || "";
 
-  if (cachedAppName) {
-    return {
-      name: cachedAppName,
-      version: VERSION,
-      app_version: APP_VERSION,
-      github_repo: GITHUB_REPO,
-      app_logo: cachedAppLogo,
-      app_favicon: cachedAppFavicon,
-    };
-  }
-
   return {
-    name: "FLVX",
+    name: cachedAppName || "FLVX",
     version: VERSION,
     app_version: APP_VERSION,
     github_repo: GITHUB_REPO,
@@ -51,35 +40,21 @@ const getInitialConfig = () => {
 
 export const siteConfig = getInitialConfig();
 
-// 缓存工具函数
 export const configCache = {
-  // 获取缓存的配置
   get: (key: string): string | null => {
-    const cacheKey = CACHE_PREFIX + key;
-
-    return localStorage.getItem(cacheKey);
+    return localStorage.getItem(CACHE_PREFIX + key);
   },
 
-  // 设置缓存的配置
   set: (key: string, value: string): void => {
-    const cacheKey = CACHE_PREFIX + key;
-
-    localStorage.setItem(cacheKey, value);
+    localStorage.setItem(CACHE_PREFIX + key, value);
   },
 
-  // 删除指定配置的缓存
   remove: (key: string): void => {
-    const cacheKey = CACHE_PREFIX + key;
-
-    localStorage.removeItem(cacheKey);
+    localStorage.removeItem(CACHE_PREFIX + key);
   },
 
-  // 清空所有配置缓存
   clear: (): void => {
-    // 获取所有localStorage的key
-    const keys = Object.keys(localStorage);
-
-    keys.forEach((key) => {
+    Object.keys(localStorage).forEach((key) => {
       if (key.startsWith(CACHE_PREFIX)) {
         localStorage.removeItem(key);
       }
@@ -87,7 +62,6 @@ export const configCache = {
   },
 };
 
-// 获取单个配置（优先从缓存）
 export const getCachedConfig = async (key: string): Promise<string | null> => {
   const cachedValue = configCache.get(key);
 
@@ -112,9 +86,7 @@ export const getCachedConfig = async (key: string): Promise<string | null> => {
   return null;
 };
 
-// 获取所有配置（优先从缓存）
 export const getCachedConfigs = async (): Promise<Record<string, string>> => {
-  // 尝试从缓存获取所有配置
   const configKeys = ["app_name", "app_logo", "app_favicon"];
   const cachedConfigs: Record<string, string> = {};
   let hasCachedData = false;
@@ -147,7 +119,7 @@ export const getCachedConfigs = async (): Promise<Record<string, string>> => {
             configCache.set(key, value);
           }
         } catch {
-          // ignore single key fetch error
+          // Ignore single key fetch failures.
         }
       }),
     );
@@ -155,14 +127,12 @@ export const getCachedConfigs = async (): Promise<Record<string, string>> => {
     return publicConfigMap;
   };
 
-  // 从API获取最新配置
   try {
     const response = await getConfigs();
 
     if (response.code === 0 && response.data) {
       const configs = response.data;
 
-      // 将所有配置存入缓存
       Object.entries(configs).forEach(([key, value]) => {
         configCache.set(key, value as string);
       });
@@ -176,7 +146,6 @@ export const getCachedConfigs = async (): Promise<Record<string, string>> => {
 
     return await fetchPublicConfigs();
   } catch {
-    // API失败时返回缓存的数据
     if (hasCachedData) {
       return cachedConfigs;
     }
@@ -235,7 +204,6 @@ const updateDocumentFavicon = (faviconUrl: string) => {
   duplicatedIcons.forEach((link) => link.remove());
 };
 
-// 动态更新网站配置
 export const updateSiteConfig = async (configMap?: Record<string, string>) => {
   const resolvedConfigMap = configMap ?? (await getCachedConfigs());
 
@@ -278,25 +246,20 @@ export const updateSiteConfig = async (configMap?: Record<string, string>) => {
   updateDocumentFavicon(siteConfig.app_favicon);
 };
 
-// 清除配置缓存的工具函数（用于需要强制重拉配置的场景）
 export const clearConfigCache = (keys?: string[]) => {
   if (keys && keys.length > 0) {
-    // 删除指定的配置缓存
     keys.forEach((key) => configCache.remove(key));
   } else {
-    // 清空所有配置缓存
     configCache.clear();
   }
 };
 
-// 在页面加载时异步更新配置（如果有更新的话）
 if (typeof window !== "undefined") {
   if (typeof document !== "undefined") {
     document.title = siteConfig.name;
   }
   updateDocumentFavicon(siteConfig.app_favicon);
 
-  // 延迟执行，避免阻塞初始渲染
   setTimeout(() => {
     void updateSiteConfig();
   }, 50);

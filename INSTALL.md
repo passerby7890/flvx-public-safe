@@ -1,15 +1,15 @@
-# Installation Guide
+# 安装指南
 
-This guide describes the public-safe install path for a new Linux VPS.
+这份指南说明如何在一台新的 Linux VPS 上安装 public-safe 源码包。
 
-## Requirements
+## 系统要求
 
-- Debian or Ubuntu style Linux VPS.
-- Root or sudo access.
-- Open inbound TCP ports for the panel frontend and backend if needed.
-- At least 2 GB RAM recommended for source builds.
+- Debian 或 Ubuntu 系 Linux VPS。
+- root 或 sudo 权限。
+- 如需公网访问，请放行面板前端/后端端口。
+- 源码构建建议至少 2 GB 内存。
 
-## Quick Install
+## 快速安装
 
 ```bash
 sudo apt-get update
@@ -19,19 +19,26 @@ cd flvx-public-safe
 sudo ./install-public-safe.sh
 ```
 
-The script creates `.env` if it does not exist and starts:
+脚本会在 `.env` 不存在时自动创建它，并启动：
 
 - PostgreSQL 16
-- FLVX backend built from `go-backend/`
-- FLVX frontend built from `vite-frontend/`
+- 从 `go-backend/` 构建的 FLVX 后端
+- 从 `vite-frontend/` 构建的 FLVX 前端
+- 从 `go-gost/` 构建并挂载到 `/agent/` 的节点安装资产
 
-## Manual Install
+如果只想启动面板、不构建节点资产，可以运行：
+
+```bash
+sudo BUILD_AGENT_ASSETS=0 ./install-public-safe.sh
+```
+
+## 手动安装
 
 ```bash
 cp .env.example .env
 ```
 
-Edit these values before first start:
+首次启动前至少修改这些值：
 
 ```bash
 JWT_SECRET=replace_with_a_new_random_secret
@@ -39,57 +46,55 @@ POSTGRES_PASSWORD=replace_with_strong_password
 DATABASE_URL=postgresql://flux_panel:replace_with_strong_password@postgres:5432/flux_panel?sslmode=disable
 ```
 
-Start the stack:
+启动服务：
 
 ```bash
 docker compose -f docker-compose.source.yml up -d --build
 ```
 
-## Verify
+## 验证安装
 
 ```bash
 docker compose -f docker-compose.source.yml ps
 curl -fsS http://127.0.0.1:${BACKEND_PORT:-6365}/flow/test
 ```
 
-Open:
+浏览器打开：
 
 ```text
-http://<server-ip>:6366
+http://<服务器IP>:6366
 ```
 
-Login:
+默认账号：
 
 ```text
 admin_user / admin_user
 ```
 
-Change the password after the first login.
+首次登录后请修改密码。
 
-## PostgreSQL Schema
+## PostgreSQL 表结构
 
-The backend starts with `DB_TYPE=postgres` and runs schema reconciliation
-automatically. A public-safe SQL package is also included at:
+默认使用 `DB_TYPE=postgres`，后端启动时会自动执行表结构校正。公开安全的 SQL 包也放在：
 
 ```text
 database/postgresql/
 ```
 
-Use `database/postgresql/schema.sql` only when a database operator needs to
-pre-create or review the schema. Normal installs do not require manual SQL.
+只有在需要预创建或审计表结构时才需要使用 `database/postgresql/schema.sql`；普通安装不需要手动导入 SQL。
 
-## Upgrade Or Rebuild
+## 更新或重新构建
 
-After pulling new source changes:
+拉取新源码后执行：
 
 ```bash
 docker compose -f docker-compose.source.yml up -d --build
 ```
 
-## Stop
+## 停止服务
 
 ```bash
 docker compose -f docker-compose.source.yml down
 ```
 
-PostgreSQL data remains in the `flvx_postgres_data` Docker volume.
+PostgreSQL 数据会保留在 Docker volume：`flvx_postgres_data`。

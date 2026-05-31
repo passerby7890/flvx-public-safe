@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import toast from "react-hot-toast";
@@ -42,7 +42,7 @@ import {
   type BrandAssetKind,
 } from "@/utils/brand-asset";
 
-// 蝞??靽??暹?蝏辣
+// 简单的保存图标组件
 const SaveIcon = ({ className }: { className?: string }) => (
   <svg
     className={className}
@@ -66,8 +66,9 @@ interface ConfigItem {
   description?: string;
   type: "input" | "switch" | "select";
   options?: { label: string; value: string; description?: string }[];
-  dependsOn?: string; // 靘???蝵桅★key
-  dependsValue?: string; // 靘???蝵桅★??}
+  dependsOn?: string; // 依赖的配置项key
+  dependsValue?: string; // 依赖的配置项值
+}
 
 const BRAND_PREVIEW_KEYS = ["app_logo", "app_favicon"] as const;
 
@@ -82,72 +83,71 @@ const toBrandAssetKind = (key: BrandPreviewKey): BrandAssetKind => {
   return key === "app_logo" ? "logo" : "favicon";
 };
 
-// 蝵??蔭憿孵?銋?const CONFIG_ITEMS: ConfigItem[] = [
+// 网站配置项定义
+const CONFIG_ITEMS: ConfigItem[] = [
   {
     key: "ip",
-    label: "?Ｘ?垢?啣?",
-    placeholder: "霂瑁??仿?踹?蝡涅P:PORT",
-    description:
-      '?澆?"ip:port"??domain:port",?其?撖寞??嗡蝙?具??CDN?TTPS,?悖?唳??撖?,
+    label: "面板地址",
+    placeholder: "例如: example.com:6366 或 203.0.113.10:6366",
+    description: "用于生成节点安装和访问地址，支持 IP:PORT 或 DOMAIN:PORT。",
     type: "input",
   },
   {
     key: "agent_download_base_url",
-    label: "Agent 銝蝸?箏?",
-    placeholder: "靘?: http://203.0.113.10:6366",
-    description:
-      "?其??摰????Agent 鈭??嗡?頧賜??砍??啣??遣霈桀‵??蝡舫?踹?嚗??冽?剔垢????,
+    label: "Agent 下载地址",
+    placeholder: "例如: http://203.0.113.10:6366",
+    description: "节点升级时下载 agent 资源的基础地址。留空时使用面板地址。",
     type: "input",
   },
   {
     key: "panel_domain",
-    label: "?Ｘ??",
-    placeholder: "霂瑁??仿?踹???,
-    description: "敶??Ｘ?????其?銝隞?輯?銵??血鈭急撉?頨思遢",
+    label: "面板域名",
+    placeholder: "例如: panel.example.com",
+    description: "面板对外访问域名，用于生成外部访问链接。",
     type: "input",
   },
   {
     key: "app_name",
-    label: "摨?妍",
-    placeholder: "霂瑁??亙??典?蝘?,
-    description: "?冽?閫?倌憿萄?撖潸?蝷箇?摨?妍",
+    label: "应用名称",
+    placeholder: "例如: FLVX",
+    description: "显示在浏览器标题和页面中的应用名称。",
     type: "input",
   },
   {
     key: "app_logo",
-    label: "蝵△閫? Logo",
-    description: "?其?憿菟撌虫?閫紡?芾???銝????芸頧祆銝?PNG 撟嗆?銋?靽?",
+    label: "应用 Logo",
+    description: "支持 PNG、JPEG、WebP 或 SVG，保存时会转换为可缓存的品牌资源。",
     type: "input",
   },
   {
     key: "app_favicon",
-    label: "瘚??函憬?亙??,
-    description: "?其?瘚??冽?蝑暸△?暹?嚗?隡?隡?刻蓮?Ｖ蛹 PNG 撟嗆?銋?靽?",
+    label: "浏览器图标",
+    description: "建议使用 PNG 图标，用于浏览器标签页 favicon。",
     type: "input",
   },
   {
     key: "forward_compact_mode",
-    label: "閫?憿菟蝎曄?璅∪?",
-    description: "撘?臬?嚗??△?Ｗ?銵其蝙??2.1.6-alpha8 ?瑕?嚗撅?蔭嚗?,
+    label: "转发紧凑模式",
+    description: "开启后转发表格使用更紧凑的显示方式。",
     type: "switch",
   },
   {
     key: "monitor_tunnel_quality_enabled",
-    label: "摰?折?韐券?璉瘚?,
-    description: "?喲???垢?迫?芸?瑟嚗?蝡臬?甇Ｗ??園?捶?瘚??典??蔭嚗?,
+    label: "启用隧道质量监控",
+    description: "开启后后台会定期探测隧道质量并生成历史记录。",
     type: "switch",
   },
   {
     key: "captcha_enabled",
-    label: "?舐撉???,
-    description: "撘?臬?嚗?瑞敶?閬???霂?撉?",
+    label: "启用验证码",
+    description: "开启后登录流程会使用 Cloudflare Turnstile 校验。",
     type: "switch",
   },
   {
     key: "cloudflare_site_key",
     label: "Cloudflare Site Key",
-    placeholder: "霂瑁???Cloudflare Site Key",
-    description: "Cloudflare Turnstile 蝡撖",
+    placeholder: "请输入 Cloudflare Site Key",
+    description: "Cloudflare Turnstile 前端站点密钥。",
     type: "input",
     dependsOn: "captcha_enabled",
     dependsValue: "true",
@@ -155,23 +155,23 @@ const toBrandAssetKind = (key: BrandPreviewKey): BrandAssetKind => {
   {
     key: "cloudflare_secret_key",
     label: "Cloudflare Secret Key",
-    placeholder: "霂瑁???Cloudflare Secret Key",
-    description: "Cloudflare Turnstile 撖",
+    placeholder: "请输入 Cloudflare Secret Key",
+    description: "Cloudflare Turnstile 后端密钥。",
     type: "input",
     dependsOn: "captcha_enabled",
     dependsValue: "true",
   },
   {
     key: "github_proxy_enabled",
-    label: "撘??GitHub ??,
-    description: "?其???湔??鋆??砌?頧踝?閫??典??啣 GitHub 霈輸???桅?",
+    label: "启用 GitHub 代理",
+    description: "用于 release、升级包和 agent 下载场景。",
     type: "switch",
   },
   {
     key: "github_proxy_url",
-    label: "??",
+    label: "GitHub 代理地址",
     placeholder: "https://gcode.hostcentral.cc",
-    description: "GitHub 銝蝸?誨??嚗??臬?????",
+    description: "GitHub 下载代理基础地址。",
     type: "input",
     dependsOn: "github_proxy_enabled",
     dependsValue: "true",
@@ -179,21 +179,21 @@ const toBrandAssetKind = (key: BrandPreviewKey): BrandAssetKind => {
 ];
 
 const BACKUP_TYPE_OPTIONS = [
-  { value: "users", label: "?冽" },
-  { value: "nodes", label: "?" },
-  { value: "tunnels", label: "?折?" },
-  { value: "forwards", label: "閫?" },
-  { value: "userTunnels", label: "?冽?折???" },
-  { value: "speedLimits", label: "???? },
-  { value: "tunnelGroups", label: "?折???" },
-  { value: "userGroups", label: "?冽??" },
-  { value: "permissions", label: "????" },
-  { value: "configs", label: "蝟餌??蔭" },
+  { value: "users", label: "用户" },
+  { value: "nodes", label: "节点" },
+  { value: "tunnels", label: "隧道" },
+  { value: "forwards", label: "转发" },
+  { value: "userTunnels", label: "用户隧道权限" },
+  { value: "speedLimits", label: "限速规则" },
+  { value: "tunnelGroups", label: "隧道组" },
+  { value: "userGroups", label: "用户组" },
+  { value: "permissions", label: "权限" },
+  { value: "configs", label: "系统配置" },
 ] as const;
 
 const BACKUP_TYPE_VALUES = BACKUP_TYPE_OPTIONS.map((option) => option.value);
 
-// ???隞?摮粉??蝵殷??踹??芰?
+// 初始化时从缓存读取配置，避免闪烁
 const getInitialConfigs = (): Record<string, string> => {
   if (typeof window === "undefined") return {};
 
@@ -282,27 +282,30 @@ export default function ConfigPage() {
     navigate("/profile", { replace: true });
   };
 
-  // ??璉??  useEffect(() => {
+  // 权限检查
+  useEffect(() => {
     if (!isAdmin()) {
-      toast.error("??銝雲嚗?恣???臭誑霈輸甇日△??);
+      toast.error("权限不足，只有管理员可以访问此页面");
       navigate("/dashboard", { replace: true });
 
       return;
     }
   }, [navigate]);
 
-  // ?蝸?蔭?唳嚗???蝻?嚗?  const loadConfigs = async (currentConfigs?: Record<string, string>) => {
+  // 加载配置数据（优先从缓存）
+  const loadConfigs = async (currentConfigs?: Record<string, string>) => {
     const configsToCompare = currentConfigs || configs;
     const hasInitialData = Object.keys(configsToCompare).length > 0;
 
-    // 憒?撌脫?蝻??唳嚗??曄內loading嚗?暺??    if (!hasInitialData) {
+    // 如果已有缓存数据，不显示loading，静默更新
+    if (!hasInitialData) {
       setLoading(true);
     }
 
     try {
       const configData = await getCachedConfigs();
 
-      // ?芣??冽?格????嗆??湔
+      // 只有在数据有变化时才更新
       const hasDataChanged =
         JSON.stringify(configData) !== JSON.stringify(configsToCompare);
 
@@ -313,8 +316,9 @@ export default function ConfigPage() {
       } else {
       }
     } catch {
-      // ?芣??冽瓷??摮?格?蝷粹?霂?      if (!hasInitialData) {
-        toast.error("?蝸?蔭?粹?嚗窈??");
+      // 只有在没有缓存数据时才显示错误
+      if (!hasInitialData) {
+        toast.error("加载配置出错，请重试");
       }
     } finally {
       setLoading(false);
@@ -350,12 +354,12 @@ export default function ConfigPage() {
       const res = await updateAnnouncement(announcement);
 
       if (res.code === 0) {
-        toast.success("?砍?靽???");
+        toast.success("公告保存成功");
       } else {
-        toast.error(res.msg || "靽?憭梯揖");
+        toast.error(res.msg || "保存失败");
       }
     } catch {
-      toast.error("靽??砍?憭梯揖嚗窈??");
+      toast.error("保存公告失败，请重试");
     } finally {
       setAnnouncementSaving(false);
     }
@@ -365,7 +369,7 @@ export default function ConfigPage() {
     setUpdateChannel(channel);
     setUpdateReleaseChannel(channel);
     toast.success(
-      `?湔??撌脣??Ｖ蛹${channel === "stable" ? "蝔喳??? : "撘??"}`,
+      `更新通道已切换为${channel === "stable" ? "稳定版" : "开发版"}`,
     );
   };
 
@@ -389,7 +393,7 @@ export default function ConfigPage() {
     setHasChanges(hasChangesNow);
   };
 
-  // 靽??蔭
+  // 保存配置
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -412,7 +416,7 @@ export default function ConfigPage() {
       const response = await updateConfigs(changedPayload);
 
       if (response.code === 0) {
-        toast.success("?蔭靽???");
+        toast.success("配置保存成功");
 
         Object.entries(configs).forEach(([key, value]) => {
           configCache.set(key, value);
@@ -429,14 +433,14 @@ export default function ConfigPage() {
           await updateSiteConfig(configs);
         }
 
-        // 閫血??蔭?湔鈭辣嚗?嗡?蝏辣
+        // 触发配置更新事件，通知其他组件
         window.dispatchEvent(
           new CustomEvent("configUpdated", {
             detail: { changedKeys },
           }),
         );
 
-        // 憒??折?韐券?璉瘚??喳??湛?? tunnel-monitor-view
+        // 如果隧道质量检测开关变更，通知 tunnel-monitor-view
         if (changedKeys.includes("monitor_tunnel_quality_enabled")) {
           window.dispatchEvent(
             new CustomEvent("monitorTunnelQualityEnabledChanged", {
@@ -445,16 +449,16 @@ export default function ConfigPage() {
           );
         }
       } else {
-        toast.error("靽??蔭憭梯揖: " + response.msg);
+        toast.error("保存配置失败: " + response.msg);
       }
     } catch {
-      toast.error("靽??蔭?粹?嚗窈??");
+      toast.error("保存配置出错，请重试");
     } finally {
       setSaving(false);
     }
   };
 
-  // 璉?仿?蝵桅★?臬摨砲?曄內嚗?韏??伐?
+  // 检查配置项是否应该显示（依赖检查）
   const shouldShowItem = (item: ConfigItem): boolean => {
     if (!item.dependsOn || !item.dependsValue) {
       return true;
@@ -499,10 +503,10 @@ export default function ConfigPage() {
       );
 
       handleConfigChange(key, pngDataURL);
-      toast.success(key === "app_logo" ? "Logo 銝???" : "Favicon 銝???");
+      toast.success(key === "app_logo" ? "Logo 上传成功" : "Favicon 上传成功");
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "?曄?憭?憭梯揖嚗窈??";
+        error instanceof Error ? error.message : "图片处理失败，请重试";
 
       toast.error(message);
     } finally {
@@ -513,13 +517,13 @@ export default function ConfigPage() {
 
   const renderBrandPreview = (key: BrandPreviewKey) => {
     const previewUrl = (configs[key] || "").trim();
-    const appNamePreview = (configs.app_name || "").trim() || "摨?妍";
+    const appNamePreview = (configs.app_name || "").trim() || "应用名称";
     const failed = previewLoadFailed[key] === true;
     const showImage = previewUrl.length > 0 && !failed;
 
     return (
       <div className="mt-3 rounded-lg border border-default-200 dark:border-default-100/30 bg-default-50/60 dark:bg-default-100/10 p-3">
-        <p className="text-xs text-default-500">摰憸?</p>
+        <p className="text-xs text-default-500">实时预览</p>
         <div className="mt-2 rounded-md border border-default-200 dark:border-default-100/30 bg-white dark:bg-black px-3 py-2">
           {key === "app_logo" ? (
             <div className="flex h-10 items-center gap-2">
@@ -570,17 +574,18 @@ export default function ConfigPage() {
 
         {previewUrl.length === 0 ? (
           <p className="mt-2 text-xs text-default-500">
-            銝??曄???摰?曄內憸?
+            上传图片后会实时显示预览
           </p>
         ) : null}
 
         {previewUrl.length > 0 && failed ? (
-          <p className="mt-2 text-xs text-danger">?曄??蝸憭梯揖嚗窈?銝?</p>
+          <p className="mt-2 text-xs text-danger">图片加载失败，请重新上传</p>
         ) : null}
 
         {previewUrl.length > 0 && !isPngDataURL(previewUrl) ? (
           <p className="mt-2 text-xs text-warning-600 dark:text-warning-400">
-            敶??舀??URL ?蔭嚗遣霈桅??唬?隡?誑?舐???頧?          </p>
+            当前是旧版 URL 配置，建议重新上传图片以启用无闪烁加载
+          </p>
         ) : null}
       </div>
     );
@@ -622,11 +627,11 @@ export default function ConfigPage() {
           >
             {value.length > 0
               ? isLogo
-                ? "?踵 Logo"
-                : "?踵 Favicon"
+                ? "替换 Logo"
+                : "替换 Favicon"
               : isLogo
-                ? "銝? Logo"
-                : "銝? Favicon"}
+                ? "上传 Logo"
+                : "上传 Favicon"}
           </Button>
           <Button
             isDisabled={value.length === 0 || uploading}
@@ -634,17 +639,17 @@ export default function ConfigPage() {
             variant="light"
             onPress={() => clearBrandAsset(key)}
           >
-            皜
+            清除
           </Button>
           <span className="text-xs text-default-500">
-            隞???隞塚??芸頧祆銝?PNG
+            仅支持图片文件，自动转换为 PNG
           </span>
         </div>
 
         <p className="mt-2 text-xs text-default-500">
           {isLogo
-            ? "撱箄悅銝??孵耦?曄?嚗頂蝏?蝏?頧祆銝?96x96 PNG"
-            : "撱箄悅銝??孵耦?曄?嚗頂蝏?蝏?頧祆銝?64x64 PNG"}
+            ? "建议上传方形图片，系统会统一转换为 96x96 PNG"
+            : "建议上传方形图片，系统会统一转换为 64x64 PNG"}
         </p>
 
         {renderBrandPreview(key)}
@@ -652,7 +657,7 @@ export default function ConfigPage() {
     );
   };
 
-  // 皜脫?銝?蝐餃???蝵桅★
+  // 渲染不同类型的配置项
   const renderConfigItem = (item: ConfigItem) => {
     const isChanged =
       hasChanges && configs[item.key] !== originalConfigs[item.key];
@@ -693,7 +698,7 @@ export default function ConfigPage() {
             }
           >
             <span className="text-sm text-gray-700 dark:text-gray-300">
-              {configs[item.key] === "true" ? "撌脣?? : "撌脩???}
+              {configs[item.key] === "true" ? "已启用" : "已禁用"}
             </span>
           </Switch>
         );
@@ -706,7 +711,7 @@ export default function ConfigPage() {
                 ? "border-warning-300 data-[hover=true]:border-warning-400"
                 : "",
             }}
-            placeholder="霂琿撉??掩??
+            placeholder="请选择验证码类型"
             selectedKeys={configs[item.key] ? [configs[item.key]] : []}
             size="md"
             variant="bordered"
@@ -733,17 +738,17 @@ export default function ConfigPage() {
 
   const handleExport = async () => {
     if (exportTypes.length === 0) {
-      toast.error("霂瑁撠銝蝘?桃掩??);
+      toast.error("请至少选择一种数据类型");
 
       return;
     }
     setExporting(true);
     try {
       await exportBackup(exportTypes);
-      toast.success("撖澆??");
+      toast.success("导出成功");
       setExportSelectorOpen(false);
     } catch {
-      toast.error("撖澆憭梯揖嚗窈??");
+      toast.error("导出失败，请重试");
     } finally {
       setExporting(false);
     }
@@ -751,7 +756,7 @@ export default function ConfigPage() {
 
   const triggerImportFilePicker = () => {
     if (importTypes.length === 0) {
-      toast.error("霂瑕??閬紡?亦??唳蝐餃?");
+      toast.error("请先选择要导入的数据类型");
 
       return;
     }
@@ -766,7 +771,7 @@ export default function ConfigPage() {
     if (!file) return;
 
     if (importTypes.length === 0) {
-      toast.error("霂瑕??閬紡?亦??唳蝐餃?");
+      toast.error("请先选择要导入的数据类型");
 
       return;
     }
@@ -784,14 +789,14 @@ export default function ConfigPage() {
       });
 
       if (response.code === 0) {
-        toast.success(`撖澆??: ${JSON.stringify(response.data)}`);
+        toast.success(`导入成功: ${JSON.stringify(response.data)}`);
         setImportTypes([]);
         setImportFileName("");
       } else {
-        toast.error("撖澆憭梯揖: " + response.msg);
+        toast.error("导入失败: " + response.msg);
       }
     } catch {
-      toast.error("撖澆憭梯揖嚗窈璉?交?隞嗆撘?);
+      toast.error("导入失败，请检查文件格式");
     } finally {
       setImporting(false);
       if (backupFileInputRef.current) {
@@ -835,10 +840,10 @@ export default function ConfigPage() {
                 setTypes(allSelected ? [] : [...BACKUP_TYPE_VALUES])
               }
             >
-              {allSelected ? "???券? : "?券?}
+              {allSelected ? "取消全选" : "全选"}
             </Button>
             <Button size="sm" variant="light" onPress={() => setTypes([])}>
-              皜征
+              清空
             </Button>
           </div>
         </div>
@@ -889,18 +894,18 @@ export default function ConfigPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Spinner label="?蝸?蔭銝?.." size="lg" />
+        <Spinner label="加载配置中..." size="lg" />
       </div>
     );
   }
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
-      {/* 憿菟?? */}
+      {/* 页面标题 */}
       <div className="flex items-center gap-3 mb-6">
         <Button
           isIconOnly
-          aria-label="餈?銝?憿?
+          aria-label="返回上一页"
           className="min-w-0 w-9 h-9"
           size="sm"
           variant="flat"
@@ -910,9 +915,9 @@ export default function ConfigPage() {
         </Button>
         <SettingsIcon className="w-8 h-8 text-primary" />
         <div>
-          <h1 className="text-2xl font-bold">蝵??蔭</h1>
+          <h1 className="text-2xl font-bold">网站配置</h1>
           <p className="text-gray-600 dark:text-gray-400">
-            蝞∠?蝵???砌縑?臬??曄內霈曄蔭
+            管理网站的基本信息和显示设置
           </p>
         </div>
       </div>
@@ -921,9 +926,9 @@ export default function ConfigPage() {
         <CardHeader className="pb-6">
           <div className="flex items-center w-full">
             <div>
-              <h2 className="text-xl font-semibold">?箸霈曄蔭</h2>
+              <h2 className="text-xl font-semibold">基本设置</h2>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                ?蔭蝵???砌縑?荔?餈?霈曄蔭隡蔣??蝡??曄內??
+                配置网站的基本信息，这些设置会影响网站的显示效果
               </p>
             </div>
           </div>
@@ -933,12 +938,13 @@ export default function ConfigPage() {
 
         <CardBody className="space-y-6 pt-8 md:pt-8">
           {CONFIG_ITEMS.map((item, index) => {
-            // 璉?仿?蝵桅★?臬摨砲?曄內
+            // 检查配置项是否应该显示
             if (!shouldShowItem(item)) {
               return null;
             }
 
-            // 霈∠??臬?舀???銝芣蝷箇?憿寧嚗鈭摰?行蝷箏??瑪嚗?            const remainingItems = CONFIG_ITEMS.slice(index + 1).filter(
+            // 计算是否是最后一个显示的项目（用于决定是否显示分隔线）
+            const remainingItems = CONFIG_ITEMS.slice(index + 1).filter(
               shouldShowItem,
             );
             const isLastItem = remainingItems.length === 0;
@@ -956,10 +962,10 @@ export default function ConfigPage() {
                   )}
                 </div>
 
-                {/* 皜脫??蔭憿?*/}
+                {/* 渲染配置项 */}
                 {renderConfigItem(item)}
 
-                {/* ??蝥?*/}
+                {/* 分隔线 */}
                 {!isLastItem && <Divider className="mt-6" />}
               </div>
             );
@@ -970,11 +976,12 @@ export default function ConfigPage() {
           <div className="space-y-3">
             <div className="flex flex-col gap-1">
               <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                ?湔??
+                更新通道
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                蝔喳????寥?蝥舀摮??穿?撘??隞????alpha / beta / rc
-                ???研?              </p>
+                稳定版仅匹配纯数字版本；开发版仅匹配包含 alpha / beta / rc
+                的版本。
+              </p>
             </div>
 
             <Select
@@ -988,13 +995,14 @@ export default function ConfigPage() {
                 handleUpdateChannelChange(selected);
               }}
             >
-              <SelectItem key="stable" description="隞滲?啣??嚗? 2.1.4">
-                蝔喳???              </SelectItem>
+              <SelectItem key="stable" description="仅纯数字版本，如 2.1.4">
+                稳定版
+              </SelectItem>
               <SelectItem
                 key="dev"
-                description="隞?alpha / beta / rc ?喲摮???
+                description="仅 alpha / beta / rc 关键字版本"
               >
-                撘??
+                开发版
               </SelectItem>
             </Select>
           </div>
@@ -1007,13 +1015,13 @@ export default function ConfigPage() {
               startContent={<SaveIcon className="w-4 h-4" />}
               onPress={handleSave}
             >
-              {saving ? "靽?銝?.." : "靽??蔭"}
+              {saving ? "保存中..." : "保存配置"}
             </Button>
           </div>
         </CardBody>
       </Card>
 
-      {/* 銝駁?霈曄蔭 */}
+      {/* 主题设置 */}
       <div className="mt-6">
         <ThemeSettings />
       </div>
@@ -1023,7 +1031,7 @@ export default function ConfigPage() {
           <div className="h-10 flex items-center justify-center gap-2 text-warning-700 dark:text-warning-300">
             <div className="w-2 h-2 bg-warning-500 rounded-full animate-pulse flex-shrink-0" />
             <span className="text-sm font-medium leading-none">
-              璉瘚?蔭?嚗窈霈啣?靽??函?靽格
+              检测到配置变更，请记得保存您的修改
             </span>
           </div>
         </Card>
@@ -1033,9 +1041,10 @@ export default function ConfigPage() {
         <CardHeader className="pb-6">
           <div className="flex justify-between items-center w-full">
             <div>
-              <h2 className="text-xl font-semibold">?砍?蝞∠?</h2>
+              <h2 className="text-xl font-semibold">公告管理</h2>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                霈曄蔭擐△?曄內???摰?              </p>
+                设置首页显示的公告内容
+              </p>
             </div>
           </div>
         </CardHeader>
@@ -1060,18 +1069,18 @@ export default function ConfigPage() {
                   }
                 >
                   <span className="text-sm text-gray-700 dark:text-gray-300">
-                    {announcement.enabled === 1 ? "撌脣?? : "撌脩???}
+                    {announcement.enabled === 1 ? "已启用" : "已禁用"}
                   </span>
                 </Switch>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  ?舐???砍?撠擐△憿園?曄內
+                  启用后，公告将在首页顶部显示
                 </p>
               </div>
 
               <Textarea
-                label="?砍??捆"
+                label="公告内容"
                 minRows={4}
-                placeholder="?舀? Markdown嚗?憒?**??**??暹](https://example.com)?? ?”"
+                placeholder="支持 Markdown，例如：**加粗**、[链接](https://example.com)、- 列表"
                 value={announcement.content}
                 variant="bordered"
                 onChange={(e) =>
@@ -1079,7 +1088,7 @@ export default function ConfigPage() {
                 }
               />
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                ?砍??舀? Markdown 霂剜?嚗?乩??冽?倌憿菜?撘
+                公告支持 Markdown 语法，链接会在新标签页打开
               </p>
 
               <div className="flex justify-end mt-4 pt-4 border-t border-divider/50">
@@ -1089,7 +1098,7 @@ export default function ConfigPage() {
                   startContent={<SaveIcon className="w-4 h-4" />}
                   onPress={saveAnnouncement}
                 >
-                  靽??砍?
+                  保存公告
                 </Button>
               </div>
             </>
@@ -1097,14 +1106,14 @@ export default function ConfigPage() {
         </CardBody>
       </Card>
 
-      {/* 憭遢銝憭?*/}
+      {/* 备份与恢复 */}
       <Card className="mt-6 shadow-md">
         <CardHeader className="pb-6">
           <div className="flex justify-between items-center w-full">
             <div>
-              <h2 className="text-xl font-semibold">?唳憭遢銝憭?/h2>
+              <h2 className="text-xl font-semibold">数据备份与恢复</h2>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                撖澆?紡?亦頂蝏?殷??舀???孵??唳蝐餃?
+                导出或导入系统数据，支持选择特定数据类型
               </p>
             </div>
           </div>
@@ -1113,14 +1122,14 @@ export default function ConfigPage() {
         <Divider />
 
         <CardBody className="space-y-6 pt-8 md:pt-8">
-          {/* 撖澆?典? */}
+          {/* 导出部分 */}
           <div className="space-y-4">
-            <h3 className="text-lg font-medium">撖澆?唳</h3>
+            <h3 className="text-lg font-medium">导出数据</h3>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              ?閬紡?箇??唳蝐餃?嚗紡?箔蛹 JSON ?澆??辣
+              选择要导出的数据类型，导出为 JSON 格式文件
             </p>
             <p className="text-xs text-default-500">
-              敶?撌脤?{exportTypes.length} / {BACKUP_TYPE_VALUES.length}
+              当前已选 {exportTypes.length} / {BACKUP_TYPE_VALUES.length}
             </p>
 
             <div className="flex justify-end gap-3 pt-4">
@@ -1129,21 +1138,21 @@ export default function ConfigPage() {
                 isLoading={exporting}
                 onPress={() => setExportSelectorOpen(true)}
               >
-                {exporting ? "撖澆銝?.." : "?撟嗅紡??}
+                {exporting ? "导出中..." : "选择并导出"}
               </Button>
             </div>
           </div>
 
           <Divider />
 
-          {/* 撖澆?典? */}
+          {/* 导入部分 */}
           <div className="space-y-4">
-            <h3 className="text-lg font-medium">撖澆?唳</h3>
+            <h3 className="text-lg font-medium">导入数据</h3>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              ?閬紡?亦??唳蝐餃?嚗??憭遢?辣?Ｗ??唳
+              选择要导入的数据类型，支持从备份文件恢复数据
             </p>
             <p className="text-xs text-default-500">
-              敶?撌脤?{importTypes.length} / {BACKUP_TYPE_VALUES.length}
+              当前已选 {importTypes.length} / {BACKUP_TYPE_VALUES.length}
             </p>
 
             <input
@@ -1161,11 +1170,11 @@ export default function ConfigPage() {
                 variant="flat"
                 onPress={() => setImportSelectorOpen(true)}
               >
-                {importing ? "撖澆銝?.." : "?撟嗅紡??}
+                {importing ? "导入中..." : "选择并导入"}
               </Button>
               {importFileName && (
                 <span className="self-center text-sm text-gray-600 dark:text-gray-400">
-                  撌脤: {importFileName}
+                  已选择: {importFileName}
                 </span>
               )}
             </div>
@@ -1184,20 +1193,20 @@ export default function ConfigPage() {
         <ModalContent>
           {(onClose) => (
             <>
-              <ModalHeader>?撖澆?捆</ModalHeader>
+              <ModalHeader>选择导出内容</ModalHeader>
               <ModalBody>
-                {renderTypeSelection("撖澆?捆", exportTypes, setExportTypes)}
+                {renderTypeSelection("导出内容", exportTypes, setExportTypes)}
               </ModalBody>
               <ModalFooter>
                 <Button variant="light" onPress={onClose}>
-                  ??
+                  取消
                 </Button>
                 <Button
                   color="primary"
                   isLoading={exporting}
                   onPress={handleExport}
                 >
-                  {exporting ? "撖澆銝?.." : "蝖株恕撖澆"}
+                  {exporting ? "导出中..." : "确认导出"}
                 </Button>
               </ModalFooter>
             </>
@@ -1216,20 +1225,20 @@ export default function ConfigPage() {
         <ModalContent>
           {(onClose) => (
             <>
-              <ModalHeader>?撖澆?捆</ModalHeader>
+              <ModalHeader>选择导入内容</ModalHeader>
               <ModalBody>
-                {renderTypeSelection("撖澆?捆", importTypes, setImportTypes)}
+                {renderTypeSelection("导入内容", importTypes, setImportTypes)}
               </ModalBody>
               <ModalFooter>
                 <Button variant="light" onPress={onClose}>
-                  ??
+                  取消
                 </Button>
                 <Button
                   color="primary"
                   isDisabled={importTypes.length === 0}
                   onPress={triggerImportFilePicker}
                 >
-                  銝?甇仿?辣
+                  下一步选择文件
                 </Button>
               </ModalFooter>
             </>
