@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#2563eb" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="FLVX" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@100..900&display=swap"
+      rel="stylesheet"
+    />
+
+    <title>FLVX</title>
+    <script>
+      (function () {
+        const defaultFavicon = "/favicon.ico";
+        let cachedFavicon = "";
+
+        try {
+          cachedFavicon = localStorage.getItem("vite_config_app_favicon") || "";
+        } catch (_) {
+          cachedFavicon = "";
+        }
+
+        if (!cachedFavicon.trim()) {
+          try {
+            const xhr = new XMLHttpRequest();
+            xhr.open("POST", "/api/v1/config/get", false);
+            xhr.setRequestHeader("Content-Type", "application/json");
+            xhr.send(JSON.stringify({ name: "app_favicon" }));
+
+            if (xhr.status === 200) {
+              const resp = JSON.parse(xhr.responseText || "{}");
+              const value =
+                resp &&
+                typeof resp === "object" &&
+                resp.code === 0 &&
+                resp.data &&
+                typeof resp.data.value === "string"
+                  ? resp.data.value.trim()
+                  : "";
+
+              if (value) {
+                cachedFavicon = value;
+                try {
+                  localStorage.setItem("vite_config_app_favicon", value);
+                } catch (_) {}
+              }
+            }
+          } catch (_) {}
+        }
+
+        const faviconHref = cachedFavicon.trim() || defaultFavicon;
+        let faviconLink = document.head.querySelector("link#app-favicon");
+
+        if (!faviconLink) {
+          faviconLink = document.createElement("link");
+          faviconLink.id = "app-favicon";
+          faviconLink.rel = "icon";
+          document.head.appendChild(faviconLink);
+        }
+
+        faviconLink.href = faviconHref;
+        if (faviconHref.startsWith("data:image/png")) {
+          faviconLink.type = "image/png";
+        } else {
+          faviconLink.removeAttribute("type");
+        }
+
+        let shortcutIconLink = document.head.querySelector(
+          'link[rel="shortcut icon"]',
+        );
+        if (!shortcutIconLink) {
+          shortcutIconLink = document.createElement("link");
+          shortcutIconLink.rel = "shortcut icon";
+          document.head.appendChild(shortcutIconLink);
+        }
+
+        shortcutIconLink.href = faviconHref;
+        if (faviconHref.startsWith("data:image/png")) {
+          shortcutIconLink.type = "image/png";
+        } else {
+          shortcutIconLink.removeAttribute("type");
+        }
+
+        const responsiveWidth = Math.min(
+          Number(window.innerWidth || Number.MAX_SAFE_INTEGER),
+          Number(
+            (window.visualViewport && window.visualViewport.width) ||
+              Number.MAX_SAFE_INTEGER,
+          ),
+          Number(
+            (window.screen && window.screen.width) || Number.MAX_SAFE_INTEGER,
+          ),
+        );
+        const isMobile = responsiveWidth <= 768;
+        const isMobileBrowser =
+          /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+            navigator.userAgent,
+          );
+        const isTouchCompactDevice =
+          Number(navigator.maxTouchPoints || 0) > 1 &&
+          Math.min(
+            Number(
+              (window.screen && window.screen.width) || responsiveWidth,
+            ),
+            Number(
+              (window.screen && window.screen.height) || responsiveWidth,
+            ),
+          ) <= 1024;
+        const urlParams = new URLSearchParams(window.location.search);
+        const isH5Param = urlParams.get("h5") === "true";
+        const isMobileContext =
+          isMobile || isMobileBrowser || isTouchCompactDevice || isH5Param;
+
+        if (isMobileContext) {
+          document.documentElement.classList.add("h5-mode");
+        } else {
+          document.documentElement.classList.add("pc-mode");
+        }
+
+        let savedMode = "";
+        try {
+          savedMode = localStorage.getItem("flvx:theme") || "";
+        } catch (_) {}
+
+        let useDark;
+        if (savedMode === "dark") {
+          useDark = true;
+        } else if (savedMode === "light") {
+          useDark = false;
+        } else if (isMobileContext) {
+          useDark = false;
+        } else {
+          useDark =
+            window.matchMedia &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches;
+        }
+
+        if (useDark) {
+          document.documentElement.classList.add("dark");
+          document.documentElement.style.colorScheme = "dark";
+        } else {
+          document.documentElement.classList.remove("dark");
+          document.documentElement.style.colorScheme = "light";
+        }
+
+        if ((!savedMode || savedMode === "system") && window.matchMedia) {
+          window
+            .matchMedia("(prefers-color-scheme: dark)")
+            .addEventListener("change", function (e) {
+              let currentMode = "";
+              try {
+                currentMode = localStorage.getItem("flvx:theme") || "";
+              } catch (_) {}
+
+              if (currentMode && currentMode !== "system") return;
+              if (isMobileContext) return;
+
+              if (e.matches) {
+                document.documentElement.classList.add("dark");
+                document.documentElement.style.colorScheme = "dark";
+              } else {
+                document.documentElement.classList.remove("dark");
+                document.documentElement.style.colorScheme = "light";
+              }
+            });
+        }
+      })();
+    </script>
+    <style>
+      :root {
+        --toaster-bg: #ffffff;
+        --toaster-color: #000000;
+        --toaster-border: #e5e7eb;
+      }
+
+      html.dark {
+        --toaster-bg: #374151;
+        --toaster-color: #ffffff;
+        --toaster-border: #4b5563;
+      }
+
+      body {
+        margin: 0;
+        padding: 0;
+        background-color: #ffffff;
+        color: #000000;
+        transition:
+          background-color 0.2s ease,
+          color 0.2s ease;
+        overscroll-behavior: none;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      html.dark body {
+        background-color: #000000;
+        color: #ffffff;
+      }
+
+      #root {
+        min-height: 100vh;
+        background-color: inherit;
+        overscroll-behavior: none;
+      }
+
+      @supports (height: 100dvh) {
+        #root {
+          min-height: 100dvh;
+        }
+      }
+
+      @supports (-webkit-touch-callout: none) {
+        #root {
+          min-height: -webkit-fill-available;
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        transition: color-scheme 0.2s ease;
+        overscroll-behavior: none;
+      }
+
+      .h5-mode #root {
+        background-color: #ffffff;
+      }
+
+      .h5-mode.dark #root {
+        background-color: #000000;
+      }
+
+      .pc-mode #root {
+        background-color: #ffffff;
+      }
+
+      .pc-mode.dark #root {
+        background-color: #000000;
+      }
+
+      @media (max-width: 768px) {
+        html,
+        body {
+          overscroll-behavior: none;
+          -webkit-overflow-scrolling: touch;
+        }
+
+        .fixed {
+          overscroll-behavior: none;
+        }
+      }
+    </style>
+    <meta key="title" content="FLVX" property="og:title" />
+    <meta content="FLVX" property="og:description" />
+    <meta content="FLVX" name="description" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

@@ -1,0 +1,43 @@
+services:
+  backend:
+    image: flvx-backend:local
+    container_name: backend
+    restart: unless-stopped
+    environment:
+      DB_TYPE: postgres
+      DB_PATH: /app/data/gost.db
+      DATABASE_URL: ${DATABASE_URL}
+      JWT_SECRET: ${JWT_SECRET}
+      SERVER_ADDR: :6365
+      TZ: Asia/Shanghai
+    ports:
+      - "${BACKEND_PORT}:6365"
+    volumes:
+      - /root/certs:/root/certs:ro
+    networks:
+      - gost-network
+    healthcheck:
+      test: ["CMD", "sh", "-c", "wget --no-verbose --tries=1 --spider http://localhost:6365/flow/test || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  frontend:
+    image: flvx-frontend:local
+    container_name: vite-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    volumes:
+      - ./agent:/usr/share/nginx/html/agent:ro
+    networks:
+      - gost-network
+
+networks:
+  gost-network:
+    external: true
+    name: gost-network

@@ -1,0 +1,47 @@
+services:
+  backend:
+    build:
+      context: ./go-backend
+    container_name: flvx-accept-backend
+    restart: unless-stopped
+    environment:
+      DB_TYPE: sqlite
+      DB_PATH: /app/data/gost.db
+      JWT_SECRET: ${JWT_SECRET}
+      SERVER_ADDR: :6365
+      TZ: Asia/Taipei
+    ports:
+      - "${BACKEND_PORT:-16365}:6365"
+    volumes:
+      - flvx_accept_sqlite:/app/data
+    networks:
+      - flvx_accept_network
+    healthcheck:
+      test: ["CMD", "sh", "-c", "wget --no-verbose --tries=1 --spider http://localhost:6365/flow/test || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  frontend:
+    build:
+      context: ./vite-frontend
+    container_name: flvx-accept-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${FRONTEND_PORT:-16366}:80"
+    networks:
+      - flvx_accept_network
+
+volumes:
+  flvx_accept_sqlite:
+    name: flvx_accept_sqlite
+    driver: local
+
+networks:
+  flvx_accept_network:
+    name: flvx_accept_network
+    driver: bridge
